@@ -20,31 +20,25 @@
     html,body{height:100%;margin:0;overflow:hidden;font-family:ui-rounded,system-ui,-apple-system,"Segoe UI",Roboto,Arial,"Noto Sans",sans-serif;color:var(--text);background:#fff}
     #topBanner,#bottomBanner{position:fixed;left:0;width:100%;height:auto;pointer-events:none;z-index:0;display:block}
     #topBanner{top:0}#bottomBanner{bottom:0}
-    .shell{position:fixed;z-index:1;top:140px;bottom:120px;left:12px;right:12px;display:flex;flex-direction:column;gap:10px;overflow:hidden;color:var(--cardText)}
-    .mast{display:grid;grid-template-columns:auto 1fr;grid-template-areas:'logo clock' 'dates dates';align-items:center;gap:10px}
-    .mast .logo img{grid-area:logo;height:90px;width:auto;object-fit:contain;border:none;background:transparent}
-    #clockNow{grid-area:clock;text-align:left;font-size:40px;font-weight:900;letter-spacing:2px;color:#000;margin-left:6px}
-    .datesRow{grid-area:dates;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px;font-weight:700;width:100%}
-    .datesRow .chip{flex:1;text-align:center;padding:4px;border-radius:6px;background:#f3f6f8;color:#0c1b22}
+    .shell{position:fixed;z-index:1;top:100px;bottom:120px;left:16px;right:16px;display:flex;flex-direction:column;gap:12px;overflow:hidden;color:var(--cardText)}
+    .mast{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .mast .logo img{height:80px;width:auto;object-fit:contain;border:none;background:transparent}
+    #clockNow{text-align:center;font-size:clamp(28px,6vw,40px);font-weight:900;letter-spacing:2px;color:#000;flex:1}
+    .datesRow{display:flex;flex-direction:column;align-items:flex-end;gap:4px;font-size:clamp(12px,2vw,14px);font-weight:700}
+    .datesRow .chip{padding:4px 8px;border-radius:8px;background:#f3f6f8;color:#0c1b22;text-align:center}
     .section-title{text-align:center;margin:4px 0}
-    .section-title h1{font-size:22px;font-weight:800;color:var(--logo-blue);margin:0}
+    .section-title h1{font-size:24px;font-weight:800;color:var(--logo-blue);margin:0}
     .table{background:rgba(10,12,12,.8);border:1px solid rgba(255,255,255,.1);border-radius:12px;overflow:hidden;flex:1;display:flex;flex-direction:column}
     .thead{display:grid;grid-template-columns:2fr 1fr 1fr;padding:6px 8px;background:rgba(255,255,255,.1);font-size:14px;color:var(--muted)}
-    .row{display:grid;grid-template-columns:2fr 1fr 1fr;align-items:center;padding:6px;border-top:1px solid rgba(255,255,255,.1)}
-    .row .name{font-size:14px;font-weight:700}
-    .row .time{font-size:14px;font-weight:900;display:flex;flex-direction:column}
-    .row .tomorrow{text-align:right;font-size:13px;color:#bfdbfe}
+    .row{display:grid;grid-template-columns:2fr 1fr 1fr;align-items:center;padding:8px;border-top:1px solid rgba(255,255,255,.1)}
+    .row .name{font-size:16px;font-weight:700}
+    .row .time{font-size:16px;font-weight:900;display:flex;flex-direction:column}
+    .row .tomorrow{text-align:right;font-size:14px;color:#bfdbfe}
     .row.next{background:linear-gradient(90deg,rgba(59,130,246,.15),rgba(255,255,255,0))}
-    .inlinecd{font-size:11px;font-weight:700;color:#bfdbfe;margin-top:2px}
+    .inlinecd{font-size:12px;font-weight:700;color:#bfdbfe;margin-top:2px}
     .footer-card{margin-top:auto;padding:8px;text-align:center}
     .footer-card img{width:100%;border-radius:8px}
-    @media (max-width: 600px){
-    .mast{gap:8px}
-    .mast .logo img{height:64px}
-    #clockNow{font-size:32px}
-    .row .name,.row .time{font-size:14px}
-  }
-</style>
+  </style>
 </head>
 <body>
   <img id="topBanner" src="top_banner.png" alt="">
@@ -53,8 +47,8 @@
     <div class="mast">
       <div class="logo"><img src="logo.png" alt="Masjid al Noor Logo"></div>
       <div id="clockNow">--:--</div>
+      <div class="datesRow"><div class="chip" id="dateUK">—</div><div class="chip" id="dateHijri">—</div></div>
     </div>
-    <div class="datesRow"><div class="chip" id="dateUK">—</div><div class="chip" id="dateHijri">—</div></div>
     <div class="section-title"><h1>Iqamah Times</h1></div>
     <div class="table"><div class="thead"><div>Salah</div><div>Iqamah</div><div style="text-align:right">Tomorrow</div></div><div class="rows" id="rows"></div></div>
     <div class="footer-card"><a href="https://www.whatsapp.com/channel/0029Vb6qOgq9MF8xjuiinL1f" target="_blank"><img src="whatsapp.png" alt="WhatsApp Channel"></a></div>
@@ -73,70 +67,27 @@
     function tick(){const now=new Date();clockEl.textContent=fmtTime(now);dateUKEl.textContent=fmtDateLong(now);dateHijriEl.textContent=fmtHijri(now)}
     setInterval(tick,1000);tick();
 
-    function parseCSV(text){
-      const lines=text.trim().split(/\r?\n/);
-      const headers=lines[0].split(",");
-      const data=lines.slice(1).map(l=>{const vals=l.split(",");return Object.fromEntries(headers.map((h,i)=>[h,vals[i]||""]))});
-      return {headers,data};
-    }
+    function parseCSV(text){const lines=text.trim().split(/\r?\n/);const headers=lines[0].split(",");const data=lines.slice(1).map(l=>{const vals=l.split(",");return Object.fromEntries(headers.map((h,i)=>[h,vals[i]||""]))});return {headers,data};}
 
     function displayHHMM(s){if(!s)return '';const m=String(s).match(/(\d{1,2}):(\d{2})/);return m?`${m[1].padStart(2,'0')}:${m[2]}`:s}
 
-    function parseTimeToToday(s){
-      if(!s)return null;const m=String(s).match(/(\d{1,2}):(\d{2})/);if(!m)return null;
-      const d=new Date();d.setSeconds(0,0);d.setHours(+m[1],+m[2],0,0);return d;
-    }
+    function parseTimeToToday(s){if(!s)return null;const m=String(s).match(/(\d{1,2}):(\d{2})/);if(!m)return null;const d=new Date();d.setSeconds(0,0);d.setHours(+m[1],+m[2],0,0);return d;}
 
     function render(today,tomorrow,headers){
       rowsEl.innerHTML='';
-      const prayers=['Fajr','Dhuhr','Asr','Maghrib','Isha']; // Sunrise removed
+      const prayers=['Fajr','Dhuhr','Asr','Maghrib','Isha'];
       let nextIdx=-1,nextTime=null;
       const now=new Date();
-      const slots=prayers.map(p=>{
-        const col=headers.find(h=>h.toLowerCase().includes(p.toLowerCase()));
-        const tToday=col?(today[col]||''):'';
-        const tTomorrow=tomorrow?tomorrow[col]:'';
-        let parsed=parseTimeToToday(tToday);
-        if(parsed&&parsed<now){parsed.setDate(parsed.getDate()+1);} 
-        if(parsed&&parsed>now&&(!nextTime||parsed<nextTime)){nextTime=parsed;nextIdx=prayers.indexOf(p);}
-        return {label:p,today:tToday,tomorrow:tTomorrow,date:parsed};
-      });
+      const slots=prayers.map(p=>{const col=headers.find(h=>h.toLowerCase().includes(p.toLowerCase()));const tToday=col?(today[col]||''):'';const tTomorrow=tomorrow?tomorrow[col]:'';let parsed=parseTimeToToday(tToday);if(parsed&&parsed<now){parsed.setDate(parsed.getDate()+1);}if(parsed&&parsed>now&&(!nextTime||parsed<nextTime)){nextTime=parsed;nextIdx=prayers.indexOf(p);}return {label:p,today:tToday,tomorrow:tTomorrow,date:parsed};});
 
-      slots.forEach((s,i)=>{
-        const isNext=i===nextIdx;
-        const el=document.createElement('div');
-        el.className='row'+(isNext?' next':'');
-        const cdHTML=isNext&&nextTime?`<div class="inlinecd" id="inlineCD">--</div>`:'';
-        el.innerHTML=`<div class="name">${s.label}</div><div class="time">${displayHHMM(s.today)}${cdHTML}</div><div class="tomorrow">${displayHHMM(s.tomorrow)}</div>`;
-        rowsEl.appendChild(el);
-      });
+      slots.forEach((s,i)=>{const isNext=i===nextIdx;const el=document.createElement('div');el.className='row'+(isNext?' next':'');const cdHTML=isNext&&nextTime?`<div class="inlinecd" id="inlineCD">--</div>`:'';el.innerHTML=`<div class="name">${s.label}</div><div class="time">${displayHHMM(s.today)}${cdHTML}</div><div class="tomorrow">${displayHHMM(s.tomorrow)}</div>`;rowsEl.appendChild(el);});
 
       if(nextTime){startCountdown(nextTime);}
     }
 
-    function startCountdown(nextTime){
-      function tickCD(){
-        const el=document.getElementById('inlineCD');
-        if(!el)return;
-        let diff=Math.floor((nextTime-new Date())/1000);
-        if(diff<0)diff=0;
-        const h=Math.floor(diff/3600),m=Math.floor((diff%3600)/60),s=diff%60;
-        el.textContent=`T-${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-      }
-      tickCD();setInterval(tickCD,1000);
-    }
+    function startCountdown(nextTime){function tickCD(){const el=document.getElementById('inlineCD');if(!el)return;let diff=Math.floor((nextTime-new Date())/1000);if(diff<0)diff=0;const h=Math.floor(diff/3600),m=Math.floor((diff%3600)/60),s=diff%60;el.textContent=`T-${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;}tickCD();setInterval(tickCD,1000);}
 
-    async function load(){
-      try{
-        const res=await fetch("https://iqamah.lancasterisoc.org/prayertime.csv",{cache:'no-store'});
-        const text=await res.text();
-        const {headers,data}=parseCSV(text);
-        if(!data.length){rowsEl.innerHTML='<div>No data</div>';return;}
-        const today=data[0];
-        const tomorrow=data[1];
-        render(today,tomorrow,headers);
-      }catch(e){rowsEl.innerHTML='<div>Failed to load CSV</div>'}
-    }
+    async function load(){try{const res=await fetch("https://iqamah.lancasterisoc.org/prayertime.csv",{cache:'no-store'});const text=await res.text();const {headers,data}=parseCSV(text);if(!data.length){rowsEl.innerHTML='<div>No data</div>';return;}const today=data[0];const tomorrow=data[1];render(today,tomorrow,headers);}catch(e){rowsEl.innerHTML='<div>Failed to load CSV</div>'}}
     load();
   </script>
 </body>
