@@ -3,193 +3,135 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>Masjid al‑Noor • Iqamah (One‑Screen)</title>
-  <meta name="theme-color" content="#0b1418" />
+  <title>Iqamah Times</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+  <link rel="apple-touch-icon" href="favicon.png">
   <style>
     :root{
-      --bg:#0b1418; --panel:#12181b; --accent:#3b82f6; --muted:#97a3af; --ink:#e8f0f2;
-      --gap:8px; --radius:18px;
+      --bg:#ffffff;
+      --panel:#12181b;
+      --accent:#3b82f6;
+      --muted:#97a3af;
+      --text:#0b1418;
+      --cardText:#e8f0f2;
+      --logo-blue:#0b5a8f;
     }
     *{box-sizing:border-box}
-    html,body{height:100%;margin:0}
-    body{
-      min-height:100dvh; background:var(--bg); color:var(--ink);
-      font-family:ui-rounded, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", sans-serif;
-      -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
-      overflow:hidden; padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-    }
-    .app{height:100%;display:flex;flex-direction:column;gap:var(--gap);padding:10px}
-    .bar{
-      flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;
-      padding:8px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;
-      font-size:clamp(12px,2.8vw,15px)
-    }
-    .bar .title{font-weight:800;letter-spacing:.2px}
-    .bar .clock{opacity:.95}
-    .cards{flex:1 1 auto;display:flex;flex-direction:column;gap:var(--gap);height:100%;--n:6}
-    .card{
-      flex:1 1 0;min-height:0;background:var(--panel);border:1px solid rgba(255,255,255,.08);border-radius:var(--radius);
-      padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 2px 10px rgba(0,0,0,.25)
-    }
-    .left{display:flex;align-items:center;gap:12px;min-width:0}
-    .name{font-weight:800;letter-spacing:.3px;text-transform:uppercase;font-size:clamp(13px,calc(2.2vh*(6/var(--n))),18px);white-space:nowrap}
-    .sub{color:var(--muted);font-size:clamp(11px,2.1vw,13px)}
-    .time{font-variant-numeric:tabular-nums;font-size:clamp(18px,calc(3.8vh*(6/var(--n))),28px);font-weight:900}
-    .card.next{outline:2px solid var(--accent);box-shadow:0 0 0 4px rgba(59,130,246,.25)}
-    .pill{font-size:11px;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1)}
-    .count{font-size:clamp(11px,2.2vw,13px);color:var(--muted)}
-    .foot{flex:0 0 auto;text-align:center;color:var(--muted);font-size:12px;opacity:.85}
+    html,body{height:100%;margin:0;overflow:hidden;font-family:ui-rounded,system-ui,-apple-system,"Segoe UI",Roboto,Arial,"Noto Sans",sans-serif;color:var(--text);background:#fff}
+    #topBanner,#bottomBanner{position:fixed;left:0;width:100%;height:auto;pointer-events:none;z-index:0;display:block}
+    #topBanner{top:0}#bottomBanner{bottom:0}
+    .shell{position:fixed;z-index:1;top:140px;bottom:120px;left:16px;right:16px;display:flex;flex-direction:column;gap:12px;overflow:hidden;color:var(--cardText)}
+    .mast{display:flex;flex-direction:column;align-items:center;gap:8px}
+    .mast .logo img{height:100px;object-fit:contain;border:none;background:transparent}
+    #clockNow{text-align:center;font-size:36px;font-weight:900;letter-spacing:2px;color:#000}
+    .datesRow{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px;font-weight:700;width:100%}
+    .datesRow .chip{flex:1;text-align:center;padding:6px;border-radius:8px;background:#f3f6f8;color:#0c1b22}
+    .section-title{text-align:center;margin:4px 0}
+    .section-title h1{font-size:24px;font-weight:800;color:var(--logo-blue);margin:0}
+    .table{background:rgba(10,12,12,.8);border:1px solid rgba(255,255,255,.1);border-radius:12px;overflow:hidden;flex:1;display:flex;flex-direction:column}
+    .thead{display:grid;grid-template-columns:2fr 1fr 1fr;padding:6px 8px;background:rgba(255,255,255,.1);font-size:14px;color:var(--muted)}
+    .row{display:grid;grid-template-columns:2fr 1fr 1fr;align-items:center;padding:8px;border-top:1px solid rgba(255,255,255,.1)}
+    .row .name{font-size:16px;font-weight:700}
+    .row .time{font-size:16px;font-weight:900;display:flex;flex-direction:column}
+    .row .tomorrow{text-align:right;font-size:14px;color:#bfdbfe}
+    .row.next{background:linear-gradient(90deg,rgba(59,130,246,.15),rgba(255,255,255,0))}
+    .inlinecd{font-size:12px;font-weight:700;color:#bfdbfe;margin-top:2px}
+    .footer-card{margin-top:auto;padding:8px;text-align:center}
+    .footer-card img{width:100%;border-radius:8px}
   </style>
 </head>
 <body>
-  <div class="app">
-    <div class="bar">
-      <div class="title">Masjid al‑Noor • Iqamah</div>
-      <div class="clock" id="clock">--:--</div>
+  <img id="topBanner" src="top_banner.png" alt="">
+  <img id="bottomBanner" src="bottom_banner.png" alt="">
+  <div class="shell">
+    <div class="mast">
+      <div class="logo"><img src="logo.png" alt="Masjid al Noor Logo"></div>
+      <div id="clockNow">--:--</div>
+      <div class="datesRow"><div class="chip" id="dateUK">—</div><div class="chip" id="dateHijri">—</div></div>
     </div>
-    <div class="cards" id="cards"></div>
-    <div class="foot">All times local • auto‑scales to fit one screen</div>
+    <div class="section-title"><h1>Iqamah Times</h1></div>
+    <div class="table"><div class="thead"><div>Salah</div><div>Iqamah</div><div style="text-align:right">Tomorrow</div></div><div class="rows" id="rows"></div></div>
+    <div class="footer-card"><a href="https://www.whatsapp.com/channel/0029Vb6qOgq9MF8xjuiinL1f" target="_blank" rel="noopener"><img src="whatsapp.png" alt="WhatsApp Channel"></a></div>
   </div>
-
   <script>
-    const CSV_URL = "https://iqamah.lancasterisoc.org/prayertime.csv";
-    const CACHE_KEY = "oneScreenCSVv1";
-    const cardsEl = document.getElementById("cards");
+    const TZ="Europe/London";
+    const rowsEl=document.getElementById('rows');
+    const clockEl=document.getElementById('clockNow');
+    const dateUKEl=document.getElementById('dateUK');
+    const dateHijriEl=document.getElementById('dateHijri');
 
-    function h(tag, attrs={}, ...kids){
-      const el=document.createElement(tag);
-      for(const [k,v] of Object.entries(attrs||{})){
-        if(k==="class") el.className=v; else if(k==="text") el.textContent=v; else el.setAttribute(k,v);
-      }
-      for(const kid of kids){ if(kid) el.appendChild(kid); }
-      return el;
-    }
+    function fmtTime(d){return new Intl.DateTimeFormat('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:TZ}).format(d)}
+    function fmtDateLong(d){return new Intl.DateTimeFormat('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:TZ}).format(d)}
+    function fmtHijri(d){try{const f=new Intl.DateTimeFormat('en-GB-u-ca-islamic-umalqura',{day:'numeric',month:'long',year:'numeric',timeZone:TZ});return f.format(d)}catch(e){return '—'}}
 
-    function parseTimeToToday(s){
-      if(!s) return null; s=String(s).trim().toLowerCase().replace(/\./g,":");
-      let m=s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s*([ap]m))?$/); if(!m) return null;
-      let h=+m[1], mi=+m[2], se=m[3]?+m[3]:0, ap=m[4];
-      if(ap==="pm"&&h<12)h+=12; if(ap==="am"&&h===12)h=0;
-      const d=new Date(); d.setSeconds(0,0); d.setHours(h,mi,se,0); return d;
-    }
-    function minutesUntil(target){
-      const now=new Date(); const diffMs=target-now; const mins=Math.round(diffMs/60000);
-      const abs=Math.abs(mins); const h=Math.floor(abs/60), m=abs%60;
-      return {mins,text:(mins<0?"-":"")+(h?`${h}h `:"")+`${m}m`};
-    }
+    function tick(){const now=new Date();clockEl.textContent=fmtTime(now);dateUKEl.textContent=fmtDateLong(now);dateHijriEl.textContent=fmtHijri(now)}
+    setInterval(tick,1000);tick();
 
-    function cleanText(t){return (t||"").replace(/^﻿/,"").replace(/\u0000/g,"").replace(/\r\n/g,"\n").replace(/\r/g,"\n")}
-    function firstNonEmptyLine(t){return cleanText(t).split(/\n/).map(l=>l.trim()).find(Boolean)||""}
-    function detectDelim(t){const h=firstNonEmptyLine(t); const c=[",",";","\\t","|"]; let best=",",n=0; for(const d of c){const m=(h.split(d).length-1); if(m>n){best=d;n=m}} return best}
     function parseCSV(text){
-      text=cleanText(text); if(!text.trim()) return {headers:[],data:[]};
-      const d=detectDelim(text); const rows=[]; let cur="",row=[],q=false;
-      for(let i=0;i<text.length;i++){
-        const c=text[i], n=text[i+1];
-        if(q){ if(c=='\"'&&n=='\"'){cur+='\"'; i++;} else if(c=='\"'){q=false;} else cur+=c; }
-        else { if(c=='\"') q=true; else if(c===d){ row.push(cur); cur=""; } else if(c=="\n"){ row.push(cur); rows.push(row); row=[]; cur=""; } else cur+=c; }
-      }
-      if(cur.length||row.length){ row.push(cur); rows.push(row); }
-      while(rows.length && rows[0].every(x=>String(x||"").trim()==="")) rows.shift();
-      if(!rows.length) return {headers:[],data:[]};
-      const headers = rows[0].map(h=>String(h||"").trim());
-      const data = rows.slice(1).filter(r=>r.some(x=>String(x||"").trim()!==""))
-        .map(r=>Object.fromEntries(headers.map((h,i)=>[h, r[i]??""])));
+      const lines=text.trim().split(/\\r?\\n/);
+      const headers=lines[0].split(",");
+      const data=lines.slice(1).map(l=>{const vals=l.split(",");return Object.fromEntries(headers.map((h,i)=>[h,vals[i]||""]))});
       return {headers,data};
     }
-    const norm = s => String(s||"").toLowerCase().replace(/[\\s_\\-]/g,"");
 
-    function mapRowsToSchedule(headers, row){
-      const H = headers.map(h=>[h, norm(h)]);
-      const find=(rxArr)=>{
-        const cand=H.filter(([h,l])=>rxArr.some(rx=>rx.test(l)));
-        cand.sort((a,b)=>{ const w=l=>(/iqama?h?|jama?a?h?/.test(l)?2:/begin|adhan|athan|start/.test(l)?1:0); return w(b[1])-w(a[1]); });
-        return cand[0]?.[0]||null;
-      };
-      const take = c => String(row[c]||"").trim();
-      const hhmm = s => (String(s||"").match(/(\\d{1,2}):(\\d{2})/) ? String(s).replace(/^(\\d{1,2}):(\\d{2}).*/, (_,h,m)=>h.padStart(2,"0")+":"+m) : s);
-      const def = (label, pats)=>{
-        const col=find(pats); if(!col) return null;
-        const isIq = /iqama?h?|jama?a?h?/.test(norm(col));
-        return { key:label.toLowerCase(), label, time: isIq ? "" : hhmm(take(col)), jamaat: isIq ? hhmm(take(col)) : "" };
-      };
-      return [
-        def("Fajr",   [/fajr/]),
-        { key:"sunrise", label:"Sunrise", time:hhmm(take(find([/sunrise/]))), jamaat:"" },
-        def("Dhuhr",  [/dhuhr/,/dhur/,/duhr/,/zuhr/,/zuhur/]),
-        def("Asr",    [/asr/]),
-        def("Maghrib",[/maghrib/,/magrib/]),
-        def("Isha",   [/isha/,/ishaa/,/isha'?a?/])
-      ].filter(Boolean).filter(x=>x.time||x.jamaat);
+    function displayHHMM(s){if(!s)return '';const m=String(s).match(/(\\d{1,2}):(\\d{2})/);return m?`${m[1].padStart(2,'0')}:${m[2]}`:s}
+
+    function parseTimeToToday(s){
+      if(!s)return null;const m=String(s).match(/(\\d{1,2}):(\\d{2})/);if(!m)return null;
+      const d=new Date();d.setSeconds(0,0);d.setHours(+m[1],+m[2],0,0);return d;
     }
 
-    function parseDate(s){
-      if(!s) return null; s=String(s).trim();
-      const y=new Date().getFullYear();
-      let m=s.match(/^(\\d{1,2})[\\/-](\\d{1,2})(?:[\\/-](\\d{2,4}))?$/);
-      if(m){ const d=+m[1], mo=+m[2], yy=m[3]? (+m[3]<100?2000+ +m[3]:+m[3]) : y; return new Date(yy,mo-1,d); }
-      m=s.match(/^(\\d{4})-(\\d{2})-(\\d{2})$/); if(m) return new Date(+m[1],+m[2]-1,+m[3]);
-      const t=Date.parse(s); return isNaN(t)?null:new Date(t);
-    }
-
-    async function loadSchedule(){
-      try{
-        const res = await fetch(CSV_URL + (CSV_URL.includes("?")?"&":"?") + "t=" + Date.now(), {cache:"no-store"});
-        if(!res.ok) throw new Error("HTTP "+res.status);
-        const text = await res.text();
-        const {headers, data} = parseCSV(text);
-        if(!headers.length || !data.length) throw new Error("CSV empty");
-        const hasDate = headers.some(h=>norm(h)==="date");
-        if(hasDate){
-          const dCol = headers.find(h=>norm(h)==="date");
-          const today = new Date();
-          const row = data.find(r=>{const d=parseDate(r[dCol]);return d && d.getFullYear()===today.getFullYear() && d.getMonth()===today.getMonth() && d.getDate()===today.getDate();}) || data[0];
-          return mapRowsToSchedule(headers, row);
-        }else{
-          const out=[]; for(const r of data){ out.push(...mapRowsToSchedule(headers, r)); } return out;
-        }
-      }catch(e){ return []; }
-    }
-
-    function build(schedule){
-      cardsEl.innerHTML="";
-      if(!schedule.length){ cardsEl.innerHTML='<div class="card" style="justify-content:center">No data</div>'; return; }
-      cardsEl.style.setProperty("--n", schedule.length);
-
+    function render(today,tomorrow,headers){
+      rowsEl.innerHTML='';
+      const prayers=['Fajr','Sunrise','Dhuhr','Asr','Maghrib','Isha'];
+      let nextIdx=-1,nextTime=null;
       const now=new Date();
-      const withDates = schedule.map(row=>{
-        const when = parseTimeToToday(row.jamaat || row.time);
-        if(when && when < now) when.setDate(when.getDate()+1);
-        return {...row, when};
+      const slots=prayers.map(p=>{
+        const col=headers.find(h=>h.toLowerCase().includes(p.toLowerCase()));
+        const tToday=col?(today[col]||''):'';
+        const tTomorrow=tomorrow?tomorrow[col]:'';
+        let parsed=parseTimeToToday(tToday);
+        if(parsed&&parsed<now){parsed.setDate(parsed.getDate()+1);} // roll forward
+        if(parsed&&parsed>now&&(!nextTime||parsed<nextTime)){nextTime=parsed;nextIdx=prayers.indexOf(p);}
+        return {label:p,today:tToday,tomorrow:tTomorrow,date:parsed};
       });
-      const upcoming = withDates.filter(x=>x.when).sort((a,b)=>a.when-b.when)[0];
 
-      for(const row of withDates){
-        const isSunrise = /sunrise/i.test(row.label||"");
-        const left = h("div",{class:"left"},
-          h("div",{class:"name",text:row.label||""}),
-          (!isSunrise && row.jamaat) ? h("div",{class:"pill",text:"Jamaat"}) : null,
-          (row.time && !isSunrise) ? h("div",{class:"sub",text:`Adhan ${row.time}`}) : (isSunrise ? h("div",{class:"sub",text:"—"}) : null)
-        );
-        const right = h("div",{},
-          h("div",{class:"time",text: row.jamaat || row.time || "—"}),
-          row.when ? h("div",{class:"count",text: minutesUntil(row.when).text + " • left"}) : null
-        );
-        const card = h("div",{class:"card"+(upcoming && upcoming.label===row.label ? " next":"")}, left, right);
-        cardsEl.appendChild(card);
-      }
+      slots.forEach((s,i)=>{
+        const isNext=i===nextIdx;
+        const el=document.createElement('div');
+        el.className='row'+(isNext?' next':'');
+        const cdHTML=isNext&&nextTime?`<div class="inlinecd" id="inlineCD">--</div>`:'';
+        el.innerHTML=`<div class="name">${s.label}</div><div class="time">${displayHHMM(s.today)}${cdHTML}</div><div class="tomorrow">${displayHHMM(s.tomorrow)}</div>`;
+        rowsEl.appendChild(el);
+      });
+
+      if(nextTime){startCountdown(nextTime);}
     }
 
-    function tickClock(){ document.getElementById("clock").textContent = new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"}); }
+    function startCountdown(nextTime){
+      function tickCD(){
+        const el=document.getElementById('inlineCD');
+        if(!el)return;
+        let diff=Math.floor((nextTime-new Date())/1000);
+        if(diff<0)diff=0;
+        const h=Math.floor(diff/3600),m=Math.floor((diff%3600)/60),s=diff%60;
+        el.textContent=`T-${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+      }
+      tickCD();setInterval(tickCD,1000);
+    }
 
-    (async function init(){
-      const schedule = await loadSchedule();
-      build(schedule);
-      tickClock(); setInterval(tickClock, 15000);
-      addEventListener("resize", ()=>build(schedule));
-      addEventListener("orientationchange", ()=>build(schedule));
-      addEventListener("visibilitychange", ()=>{ if(!document.hidden) build(schedule); });
-    })();
+    async function load(){
+      try{
+        const res=await fetch("https://iqamah.lancasterisoc.org/prayertime.csv?ts="+Date.now(),{cache:'no-store'});
+        const text=await res.text();
+        const {headers,data}=parseCSV(text);
+        if(!data.length){rowsEl.innerHTML='<div>No data</div>';return;}
+        const today=data[0];
+        const tomorrow=data[1];
+        render(today,tomorrow,headers);
+      }catch(e){rowsEl.innerHTML='<div>Failed to load CSV</div>'}
+    }
+    load();
   </script>
 </body>
 </html>
