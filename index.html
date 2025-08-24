@@ -86,8 +86,8 @@
       const d=detectDelim(text); const rows=[]; let cur="",row=[],q=false;
       for(let i=0;i<text.length;i++){
         const c=text[i], n=text[i+1];
-        if(q){ if(c=='"'&&n=='"'){cur+='"'; i++;} else if(c=='"'){q=false;} else cur+=c; }
-        else { if(c=='"') q=true; else if(c===d){ row.push(cur); cur=""; } else if(c=="\n"){ row.push(cur); rows.push(row); row=[]; cur=""; } else cur+=c; }
+        if(q){ if(c=='\"'&&n=='\"'){cur+='\"'; i++;} else if(c=='\"'){q=false;} else cur+=c; }
+        else { if(c=='\"') q=true; else if(c===d){ row.push(cur); cur=""; } else if(c=="\n"){ row.push(cur); rows.push(row); row=[]; cur=""; } else cur+=c; }
       }
       if(cur.length||row.length){ row.push(cur); rows.push(row); }
       while(rows.length && rows[0].every(x=>String(x||"").trim()==="")) rows.shift();
@@ -100,21 +100,14 @@
     const norm = s => String(s||"").toLowerCase().replace(/[\\s_\\-]/g,"");
 
     function mapRowsToSchedule(headers, row){
-      // 1) Simple schema support: key,label,time,jamaat (one row per prayer)
-      const hasSimple = ["key","label","time"].every(h=>headers.includes(h));
-      if(hasSimple){
-        return [{ key:row.key, label:row.label, time:String(row.time||"").trim(), jamaat:String(row.jamaat||"").trim() }]
-               .filter(x=>x.label && (x.time||x.jamaat));
-      }
-      // 2) Wide row schema (Date,Fajr,Dhuhr,... with possible Iqamah columns)
       const H = headers.map(h=>[h, norm(h)]);
-      const find = (rxArr)=>{
-        const cand = H.filter(([_,l])=>rxArr.some(rx=>rx.test(l)));
+      const find=(rxArr)=>{
+        const cand=H.filter(([h,l])=>rxArr.some(rx=>rx.test(l)));
         cand.sort((a,b)=>{ const w=l=>(/iqama?h?|jama?a?h?/.test(l)?2:/begin|adhan|athan|start/.test(l)?1:0); return w(b[1])-w(a[1]); });
         return cand[0]?.[0]||null;
       };
       const take = c => String(row[c]||"").trim();
-      const hhmm = s => (String(s||"").match(/(\d{1,2}):(\d{2})/) ? String(s).replace(/^(\d{1,2}):(\d{2}).*/, (_,h,m)=>h.padStart(2,"0")+":"+m) : s);
+      const hhmm = s => (String(s||"").match(/(\\d{1,2}):(\\d{2})/) ? String(s).replace(/^(\\d{1,2}):(\\d{2}).*/, (_,h,m)=>h.padStart(2,"0")+":"+m) : s);
       const def = (label, pats)=>{
         const col=find(pats); if(!col) return null;
         const isIq = /iqama?h?|jama?a?h?/.test(norm(col));
@@ -133,9 +126,9 @@
     function parseDate(s){
       if(!s) return null; s=String(s).trim();
       const y=new Date().getFullYear();
-      let m=s.match(/^(\d{1,2})[\/-](\d{1,2})(?:[\/-](\d{2,4}))?$/);
+      let m=s.match(/^(\\d{1,2})[\\/-](\\d{1,2})(?:[\\/-](\\d{2,4}))?$/);
       if(m){ const d=+m[1], mo=+m[2], yy=m[3]? (+m[3]<100?2000+ +m[3]:+m[3]) : y; return new Date(yy,mo-1,d); }
-      m=s.match(/^(\d{4})-(\d{2})-(\d{2})$/); if(m) return new Date(+m[1],+m[2]-1,+m[3]);
+      m=s.match(/^(\\d{4})-(\\d{2})-(\\d{2})$/); if(m) return new Date(+m[1],+m[2]-1,+m[3]);
       const t=Date.parse(s); return isNaN(t)?null:new Date(t);
     }
 
@@ -144,7 +137,6 @@
         const res = await fetch(CSV_URL + (CSV_URL.includes("?")?"&":"?") + "t=" + Date.now(), {cache:"no-store"});
         if(!res.ok) throw new Error("HTTP "+res.status);
         const text = await res.text();
-        localStorage.setItem(CACHE_KEY, text);
         const {headers, data} = parseCSV(text);
         if(!headers.length || !data.length) throw new Error("CSV empty");
         const hasDate = headers.some(h=>norm(h)==="date");
@@ -156,17 +148,7 @@
         }else{
           const out=[]; for(const r of data){ out.push(...mapRowsToSchedule(headers, r)); } return out;
         }
-      }catch(e){
-        const cached = localStorage.getItem(CACHE_KEY);
-        if(cached){
-          const {headers,data}=parseCSV(cached);
-          if(headers.length && data.length){
-            if(headers.some(h=>norm(h)==="date")) return mapRowsToSchedule(headers, data[0]);
-            const out=[]; for(const r of data) out.push(...mapRowsToSchedule(headers, r)); return out;
-          }
-        }
-        return [];
-      }
+      }catch(e){ return []; }
     }
 
     function build(schedule){
