@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Prayer Timetable • One‑Screen</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
+  <link rel="apple-touch-icon" href="favicon.png">
+  <style>
+    :root{
+      --bg:#0b1418;          /* page bg */
+      --panel:#12181b;       /* card bg */
+      --accent:#3b82f6;      /* highlight */
+      --muted:#97a3af;       /* subtle text */
+      --ink:#e8f0f2;         /* main text */
+      --gap:8px;             /* space between cards */
+      --radius:18px;         /* card rounding */
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0}
+    body{
+      min-height:100vh;          /* fallbacks */
+      min-height:100svh;         /* modern mobile */
+      min-height:100dvh;         /* dynamic bars */
+      background:var(--bg);
+      color:var(--ink);
+      font-family: ui-rounded, system-ui, -apple-system, "Segoe UI", Roboto, Arial, "Noto Sans", sans-serif;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      overflow:hidden;           /* 🚫 no scroll — everything fits */
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+
+    .app{
+      /* lock to full viewport */
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      gap:var(--gap);
+      padding:10px;
+    }
+
+    /* tiny header strip to keep more room for cards */
+    .bar{
+      flex:0 0 auto;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:8px 12px;
+      background:rgba(255,255,255,0.04);
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:12px;
+      font-size:clamp(12px, 2.8vw, 15px);
+    }
+    .bar .title{font-weight:700; letter-spacing:.2px;}
+    .bar .clock{opacity:.9}
+
+    /* cards area takes the rest of the screen */
+    .cards{
+      flex:1 1 auto;
+      display:flex;              /* ← equal-height stack that always fits */
+      flex-direction:column;
+      gap:var(--gap);
+      height:100%;
+      --n:6;                     /* default, updated by JS to current count */
+    }
+
+    .card{
+      flex:1 1 0;                /* each card expands equally to fill column */
+      min-height:0;              /* avoid overflow on small screens */
+      background:var(--panel);
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:var(--radius);
+      padding:12px 14px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      box-shadow:0 2px 10px rgba(0,0,0,.25);
+    }
+
+    .left{display:flex; align-items:center; gap:12px; min-width:0}
+    .name{
+      font-weight:800;
+      letter-spacing:.3px;
+      text-transform:uppercase;
+      font-size:clamp(13px, calc(2.2vh * (6 / var(--n))), 18px);
+      white-space:nowrap;
+    }
+    .sub{color:var(--muted); font-size:clamp(11px, 2.1vw, 13px)}
+
+    .time{
+      font-variant-numeric:tabular-nums;
+      font-size:clamp(18px, calc(3.8vh * (6 / var(--n))), 28px);
+      font-weight:900;
+    }
+
+    .card.next{ outline:2px solid var(--accent); box-shadow:0 0 0 4px rgba(59,130,246,.25)}
+    .pill{ font-size:11px; padding:2px 8px; border-radius:999px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1)}
+    .count{ font-size:clamp(11px,2.2vw,13px); color:var(--muted)}
+
+    /* small footer note (optional) */
+    .foot{ flex:0 0 auto; text-align:center; color:var(--muted); font-size:12px; opacity:.85 }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="bar">
+      <div class="title">Masjid al‑Noor • Iqamah</div>
+      <div class="clock" id="clock">--:--</div>
+    </div>
+
+    <div class="cards" id="cards">
+      <!-- Cards are injected by JS from the schedule[] below -->
+    </div>
+
+    <div class="foot">All times local • auto‑scales to fit one screen</div>
+  </div>
+
+  <script>
+    // ---- Editable data (fallback). Replace with your own loader if desired.
+    // Display labels and example times; 24h strings recommended.
+    const schedule = [
+      { key:"fajr",     label:"Fajr",     time:"05:10", jamaat:"05:30" },
+      { key:"sunrise",  label:"Sunrise",  time:"06:27" },
+      { key:"dhuhr",    label:"Dhuhr",    time:"13:21", jamaat:"13:30" },
+      { key:"asr",      label:"Asr",      time:"17:25", jamaat:"17:45" },
+      { key:"maghrib",  label:"Maghrib",  time:"20:29", jamaat:"20:29" },
+      { key:"isha",     label:"Isha",     time:"21:58", jamaat:"22:15" }
+    ];
+
+    // Optional: if you later expose a CSV/JSON endpoint on the same origin,
+    // you can fetch it here and replace `schedule`. Keep CORS in mind.
+    // Example CSV headers: key,label,time,jamaat
+    async function tryLoadCSV(url){
+      try{
+        const res = await fetch(url, {cache:"no-store"});
+        if(!res.ok) return;
+        const text = await res.text();
+        const rows = text.trim().split(/\r?\n/).map(r=>r.split(","));
+        const [head,...body] = rows;
+        const idx = (name)=> head.indexOf(name);
+        const data = body.map(r=>({
+          key: r[idx("key")],
+          label: r[idx("label")],
+          time: r[idx("time")],
+          jamaat: r[idx("jamaat")]||""
+        }));
+        if(data.length) schedule.splice(0,schedule.length,...data);
+      }catch(e){ /* silent fallback to built‑in schedule */ }
+    }
+    // Uncomment and point to your hosted file once available:
+    // tryLoadCSV("/prayertime.csv");
+
+    const cardsEl = document.getElementById('cards');
+
+    function h(tag, attrs={}, ...kids){
+      const el = document.createElement(tag);
+      for(const [k,v] of Object.entries(attrs||{})){
+        if(k==="class") el.className=v; else if(k==="text") el.textContent=v; else el.setAttribute(k,v);
+      }
+      for(const kid of kids){ if(kid) el.appendChild(kid); }
+      return el;
+    }
+
+    function parseHM(s){
+      const m = /^(\d{1,2}):(\d{2})$/.exec(s||"");
+      if(!m) return null;
+      const d = new Date();
+      d.setSeconds(0,0);
+      d.setHours(+m[1], +m[2], 0, 0);
+      return d;
+    }
+
+    function fmt(date){
+      return date.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    }
+
+    function minutesUntil(target){
+      const now = new Date();
+      const diffMs = target - now;
+      const mins = Math.round(diffMs/60000);
+      const sign = mins < 0 ? -1 : 1;
+      const abs = Math.abs(mins);
+      const h = Math.floor(abs/60), m = abs%60;
+      return {mins, text: (sign<0?"-":"") + (h?`${h}h `:"") + `${m}m`};
+    }
+
+    function build(){
+      // clear and (re)render
+      cardsEl.innerHTML = '';
+
+      // let CSS know how many cards we have so font sizes scale
+      cardsEl.style.setProperty('--n', schedule.length);
+
+      const now = new Date();
+      // find next upcoming time among iqamah (jamaat) if present, else the adhan time
+      const withDates = schedule.map(row => {
+        const when = parseHM(row.jamaat || row.time);
+        if(when && when < now){ when.setDate(when.getDate()+1); } // roll to tomorrow if passed
+        return {...row, when};
+      });
+      const upcoming = withDates.filter(x=>x.when).sort((a,b)=>a.when-b.when)[0];
+
+      for(const row of withDates){
+        const left = h('div', {class:'left'},
+          h('div', {class:'name', text: row.label}),
+          row.jamaat ? h('div', {class:'pill', text:'Jamaat'}) : null,
+          h('div', {class:'sub', text: row.jamaat ? `Adhan ${row.time}` : 'Sunrise'})
+        );
+        const right = h('div', {},
+          h('div', {class:'time', text: row.jamaat ? row.jamaat : row.time}),
+          row.when ? h('div', {class:'count', text: minutesUntil(row.when).text + ' • left'}) : null
+        );
+        const card = h('div', {class:'card' + (upcoming && upcoming.key===row.key ? ' next':'' )}, left, right);
+        cardsEl.appendChild(card);
+      }
+    }
+
+    function tickClock(){
+      const el = document.getElementById('clock');
+      el.textContent = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    }
+
+    // Init
+    build();
+    tickClock();
+    setInterval(tickClock, 1000*15);
+
+    // Rebuild on visibility/orientation changes (in case of address bar height changes)
+    addEventListener('visibilitychange', () => { if(!document.hidden) build(); });
+    addEventListener('orientationchange', () => build());
+    addEventListener('resize', () => build());
+  </script>
+</body>
+</html>
